@@ -5,8 +5,8 @@ import pygame
 pygame.init()
 
 
-world_size = (12,30)
-square_size = 30
+world_size = (10,40)
+square_size = 20
 
 width = (world_size[0]+5)*(square_size+2) + 10
 height = world_size[1]*(square_size+2) + 10 
@@ -19,6 +19,7 @@ def get_random_color():
 	#c = (randint(0,255),randint(0,255),randint(0,255))
 	t = randint(0,100)
 	c = (t,randint(100,255),t+50)
+	#return (randint(0,255),randint(0,255),randint(0,255))
 	return c
 
 class Block(object):
@@ -136,7 +137,11 @@ def step_world(world, b):
 		
 		
 		return True
-def get_random_block():
+		
+random_pool = []
+
+def init_pool():
+	global random_pool
 	s = []
 	s.append([[1,1,1,1]])
 	s.append([[1,0],[1,1],[0,1]])
@@ -145,10 +150,26 @@ def get_random_block():
 	s.append([[1,1],[1,1]])
 	s.append([[0,1],[0,1],[1,1]])
 	s.append([[1,0],[1,0],[1,1]])
+	random_pool = s
 	
-	index = randint(0,len(s)-1)
+def get_random_block():
+	global random_pool
+	if len(random_pool) == 0:
+		init_pool()
+	#s = []
+	#s.append([[1,1,1,1]])
+	#s.append([[1,0],[1,1],[0,1]])
+	#s.append([[0,1],[1,1],[1,0]])
 	
-	b = Block(s[index])
+	#s.append([[1,1],[1,1]])
+	#s.append([[0,1],[0,1],[1,1]])
+	#s.append([[1,0],[1,0],[1,1]])
+	
+	index = randint(0,len(random_pool)-1)
+	
+	shape = random_pool.pop(index)
+	
+	b = Block(shape)
 	return b
 
 class Player(object):
@@ -242,7 +263,7 @@ class AI(Player):
 			#	print "\t", s2
 			
 			if len(next_moves) > 0:
-				score, next_move = choice(next_moves)
+				score, next_move = choice(next_moves)#s, b#
 			else:
 				continue
 			#score, next_move = s,b
@@ -323,7 +344,7 @@ def clear_rows(world):
 					world[x][v+1] = world[x][v]
 			return True
 	return False
-seed(1)
+seed(2)
 
 
 def draw_info_label(window, position, space, label, value):
