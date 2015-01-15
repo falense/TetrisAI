@@ -241,7 +241,7 @@ class AI(Player):
 		if highest_row > 0.5:
 			highest_row = 50
 					
-		
+		debug = True
 		if debug:
 			print "Score: ",-blocked_squares, compacted, - 2.0*future_potential, highest_row
 		
@@ -356,76 +356,77 @@ def draw_info_label(window, position, space, label, value):
 	window.blit(text, (position[0]+ space,position[1] ))   
 
 for game_count in xrange(100):
-	world = []
-	for square_x in xrange(world_size[0]):
-		column = []
-		for square_y in xrange(world_size[1]):
-			column.append(None)
-		world.append(column)
-	ai = AI()
-		
-	current_block = get_random_block()
-	next_block = get_random_block()
-	current_block = ai.get_position(world,current_block, next_block)
-	block_placed = False
-	
-	rows_cleared = 0
-	drop = False
-	while True:
-		
-		#print "**** DISP FLIP ****"
-		window.fill((0,0,0))
-		#draw_game(window, next_block)
-		draw_world(window,world,current_block)
-		draw_block(window, (square_size+2)*(world_size[0]-next_block.pos[0]+1),(square_size+2)*2, next_block)
-		
-		draw_info_label(window, (20,20), 90, "Cleared:", str(rows_cleared))
-		pygame.display.flip()
-		
-		
-			
-				
-		block_placed = step_world(world, current_block)
-		while drop and not block_placed:
-			block_placed = step_world(world, current_block)
-			
-		while clear_rows(world):
-			#window.fill((0,0,0))
-			#draw_game(window, next_block)
-			#draw_world(window,world,current_block)
-			#draw_block(window, (square_size+2)*(world_size[0]-next_block.pos[0]+1),(square_size+2)*2, next_block)
-			
-			#draw_info_label(window, (20,20), 90, "Cleared:", str(rows_cleared))
-			#pygame.display.flip()
-			rows_cleared += 1
-			
-			#sleep(0.1)
-			
-		
-		if block_placed:
-			current_block = next_block
-			next_block = get_random_block()
-		
-			if detect_loss(world):
-				print "Game over"
-				break
-			
-			new_current_block = ai.get_position(world,current_block, next_block)#randint(0,9)
-			if new_current_block is not None:
-				if not detect_collision(world, new_current_block):
-					current_block = new_current_block
-				else:
-					print "Invalid move reverting"
-			else:
-				print "Got None move"
-				
-			drop = True
-		
-		from time import sleep
-		
-		
-		#sleep(0.1)
-		for event in pygame.event.get(): 
-			if event.type == pygame.QUIT: 
-				pygame.quit()
-			
+    world = []
+    for square_x in xrange(world_size[0]):
+        column = []
+        for square_y in xrange(world_size[1]):
+            column.append(None)
+        world.append(column)
+    ai = AI()
+        
+    current_block = get_random_block()
+    next_block = get_random_block()
+    current_block = ai.get_position(world,current_block, next_block)
+    drop = True
+    block_placed = False
+   # exit(1)
+
+    rows_cleared = 0
+    while True:
+        
+        #print "**** DISP FLIP ****"
+        window.fill((0,0,0))
+        #draw_game(window, next_block)
+        draw_world(window,world,current_block)
+        draw_block(window, (square_size+2)*(world_size[0]-next_block.pos[0]+1),(square_size+2)*2, next_block)
+        
+        draw_info_label(window, (20,20), 90, "Cleared:", str(rows_cleared))
+        pygame.display.flip()
+        
+        
+            
+                
+        block_placed = step_world(world, current_block)
+        while drop and not block_placed:
+            block_placed = step_world(world, current_block)
+            
+        while clear_rows(world):
+            #window.fill((0,0,0))
+            #draw_game(window, next_block)
+            #draw_world(window,world,current_block)
+            #draw_block(window, (square_size+2)*(world_size[0]-next_block.pos[0]+1),(square_size+2)*2, next_block)
+            
+            #draw_info_label(window, (20,20), 90, "Cleared:", str(rows_cleared))
+            #pygame.display.flip()
+            rows_cleared += 1
+            
+            #sleep(0.1)
+            
+        
+        if block_placed:
+            current_block = next_block
+            next_block = get_random_block()
+        
+            if detect_loss(world):
+                print "Game over"
+                break
+            
+            new_current_block = ai.get_position(world,current_block, next_block)#randint(0,9)
+            if new_current_block is not None:
+                if not detect_collision(world, new_current_block):
+                    current_block = new_current_block
+                else:
+                    print "Invalid move reverting"
+            else:
+                print "Got None move"
+                
+            drop = True
+        
+        from time import sleep
+        
+        
+        #sleep(0.1)
+        for event in pygame.event.get(): 
+            if event.type == pygame.QUIT: 
+                pygame.quit()
+            
