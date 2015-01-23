@@ -245,6 +245,9 @@ class Player(object):
 		
 			
 class AI(Player):
+    def __init__(self, parameters):
+        self.parameters = parameters
+        
     def score(self,world, debug = False):
 
         blocked_squares = 0
@@ -289,13 +292,15 @@ class AI(Player):
         if highest_row > 0.5:
             highest_row = 50
                     
-        debug = True
+        #debug = True
         if debug:
             print "Score: ",-blocked_squares, compacted, - 2.0*future_potential, highest_row
         
         #print blocked_squares, compacted
         return -blocked_squares + compacted - future_potential - highest_row
     def get_position(self,world):
+        
+        single_lookup = True
         
         moves = self.lookup_moves(world, world.get_current_block())
         
@@ -308,17 +313,17 @@ class AI(Player):
             new_world.fast_forward()
             new_world.set_current_block(world.get_current_block().copy())
             
-            #print self.score(new_world)
+            if not single_lookup:
+                next_moves = self.lookup_moves(new_world, next_block)
+                
+                if len(next_moves) > 0:
+                    score, next_move = choice(next_moves)#s, b#
+                else:
+                    continue
             
-            next_moves = self.lookup_moves(new_world, next_block)
-            #for s2,b2 in next_moves:
-            #	print "\t", s2
-            
-            if len(next_moves) > 0:
-            	score, next_move = choice(next_moves)#s, b#
             else:
-            	continue
-            #score, next_move = s,b
+                score, next_move = s,b
+            
             if best_score is None or best_score < score:
                 best_score = score
                 best_moves = []
@@ -389,19 +394,21 @@ def draw_info_label(window, position, space, label, value):
 	text = font.render(str(value), 1, white)
 	window.blit(text, (position[0]+ space,position[1] ))   
 
-for game_count in xrange(100):
-    ai = AI()
+
+def run(ai, gui_enabled=True):
+    
     world = World(world_size[0], world_size[1])
     
     while True:
-        window.fill((0,0,0))
-        #draw_game(window, next_block)
-        draw_world(window,world)
         next_block = world.get_next_block()
-        draw_block(window, (square_size+2)*(world_size[0]-next_block.pos[0]+1),(square_size+2)*2, next_block)
         
-        draw_info_label(window, (20,20), 90, "Cleared:", str(world.rows_cleared))
-        pygame.display.flip()
+        if gui_enabled:
+            window.fill((0,0,0))
+            draw_world(window,world)
+            draw_block(window, (square_size+2)*(world_size[0]-next_block.pos[0]+1),(square_size+2)*2, next_block)
+            
+            draw_info_label(window, (20,20), 90, "Cleared:", str(world.rows_cleared))
+            pygame.display.flip()
         
         current_block = ai.get_position(world)
         world.set_current_block(current_block)
@@ -414,8 +421,25 @@ for game_count in xrange(100):
         from time import sleep
         #sleep(0.1)
         
+        #print "Rows cleared:",  world.rows_cleared
+        
         
         for event in pygame.event.get(): 
             if event.type == pygame.QUIT: 
                 pygame.quit()
+
+    
+
+def demo():
+    ai = AI([])
+    for x in xrange(10):
+        run(ai)
+    
+                
+def fitness(parameters):
+    ai = AI(parameters, False)
+    return run(ai)
+    
+if __name__=="__main__":
+    demo()
             
