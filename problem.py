@@ -1,6 +1,7 @@
 
 
 import pygame
+import numpy as np
 
 pygame.init()
 
@@ -100,13 +101,21 @@ class BlockGenerator(object):
         return b
         
         
+    def __getitem__(self,index):
+        shape = self.pool[index]
+        b = Block(shape)
+        return b
+    def __len__(self):
+        return len(self.pool)
+        
+        
         
         
         
 
 	
 from copy import deepcopy
-    
+
 class World(object):
     
     def __init__(self, width, height):
@@ -121,12 +130,16 @@ class World(object):
             self.world.append(column)
             
         
+        self.col_height = [None]*self.width
+            
+        
         self.block_generator = BlockGenerator()
         
         
         self.current_block = self.block_generator.get()
         
         self.rows_cleared = 0
+        self.score = 0
         
 
     def set_current_block(self, b):
@@ -142,20 +155,26 @@ class World(object):
             
         self.place_block()
         self.current_block = self.block_generator.get()
-        self.rows_cleared += self.clear_rows()
+        cleared = self.clear_rows()
+        self.rows_cleared += cleared
+        self.score += cleared*cleared*250
     def place_block(self):
         b = self.current_block
         for square_x, column in enumerate(b.shape):
             for square_y, active in enumerate(column):
                 if active:
                     self.world[square_x+b.pos[0]][square_y+b.pos[1]] = b.color
+                    self.col_height[square_x+b.pos[0]] = None
         
     def step(self):
         self.current_block.step()
         if self.block_placed():
             self.place_block()
             self.current_block = self.block_generator.get()
-            self.rows_cleared += self.clear_rows()
+            
+            cleared = self.clear_rows()
+            self.rows_cleared += cleared
+            self.score += cleared*cleared*250
             
             
     def clone(self):
@@ -166,6 +185,15 @@ class World(object):
             
         w.current_block = self.current_block.copy()
         return w
+    def calc_col_height(self, col):
+        for y in xrange(self.height):
+            if self.world[col][y] is not None:
+                return self.height-y
+        return 0
+    def get_col_height(self, col):
+        if self.col_height[col] is None:
+            self.col_height[col] = self.calc_col_height(col)
+        return self.col_height[col]
     def detect_collision(self):
         b = self.current_block
         shape = self.current_block.shape
@@ -205,6 +233,13 @@ class World(object):
         return 0
         
         
+    def __getitem__(self,index):
+        return self.world[index]
+
+    def __iter__(self):
+        return self.world.__iter__()
+
+
 
 def draw_square(surf,square_x,square_y, color, offset_x = 0, offset_y = 0):
 	global square_size
@@ -246,18 +281,22 @@ class Player(object):
 			
 class AI(Player):
     def __init__(self, parameters):
-        self.parameters = parameters
+        self.weights = parameters
         
-    def score(self,world, debug = False):
+    def score(self,world, prev_world, debug = False):
+        values = []
 
         blocked_squares = 0
-        for y in xrange(0,world_size[1]-1):
-            for x in xrange(0,world_size[0]):
-                if world[x][y] is None:
-                    for y2 in xrange(0,y):
-                        if world[x][y2] is not None:
-                            blocked_squares += 1
-                            break
+        for x in xrange(0,world_size[0]):
+            for y in xrange(world_size[1]-1, -1, -1):
+                if world.get_col_height(x) <= world_size[1]-y: #
+                    #print "Breaking", y
+                    break
+                if world[x][y] is None and (world_size[1]-y) < world.get_col_height(x):
+                    blocked_squares += 1
+        #print blocked_squares
+        blocked_squares /= world_size[0]*world_size[1]
+        values.append(blocked_squares)
         
         compacted = 0.0
         count = 0
@@ -268,76 +307,105 @@ class AI(Player):
                     count += 1
         if count > 0:
             compacted /= count
-        
-        future_potential = 0.0
-        for y in xrange(0,world_size[1]-1):
-            for x in xrange(0,world_size[0]):
-                if world[x][y] is None:
-                    for y2 in xrange(0,y):
-                            if world[x][y2] is None:
-                                future_potential += 1
-        future_potential /= 1000
-                        
-        highest_row = -1
-        for y in xrange(0,world_size[1]):
-            for x in xrange(0,world_size[0]):
-                if world[x][y] is not None:
-                    highest_row = float(y)
             
-            if highest_row != -1:
-                break
+            
+        values.append(compacted)
         
-        highest_row = (world_size[1]-highest_row)/world_size[1]
+        #future_potential = 0.0
+        #for y in xrange(0,world_size[1]-1):
+            #for x in xrange(0,world_size[0]):
+                #if world[x][y] is None:
+                    #for y2 in xrange(0,y):
+                            #if world[x][y2] is None:
+                                #future_potential += 1
+        #future_potential /= 1000
+        #values.append(future_potential)
+                        
+                        
+        highest_row = 0
+        for x in xrange(0,world_size[0]):
+            highest_row = max(highest_row, float(world.get_col_height(x)))
+            
+        highest_row = (highest_row)/world_size[1]
+        values.append(highest_row)
         
-        if highest_row > 0.5:
-            highest_row = 50
+        
+        col_diff = 0
+        last_height = world.get_col_height(0)
+        for x in xrange(1,world_size[0]):
+            cur_height = world.get_col_height(x)
+            col_diff += abs(last_height-cur_height)
+            
+        col_diff /= (world_size[0]-1)*world_size[1]
+        values.append(col_diff)
+        
+        delta_rows = world.rows_cleared - prev_world.rows_cleared
+        values.append(delta_rows)
                     
-        #debug = True
-        if debug:
-            print "Score: ",-blocked_squares, compacted, - 2.0*future_potential, highest_row
         
-        #print blocked_squares, compacted
-        return -blocked_squares + compacted - future_potential - highest_row
+        aprox_score = np.sum(np.array(values) * np.array(self.weights))
+        
+        
+        return aprox_score
     def get_position(self,world):
-        
-        single_lookup = True
         
         moves = self.lookup_moves(world, world.get_current_block())
         
-        best_score = None
-        best_moves = []
+        c = max(1,len(moves)/10)
+        first_moves = moves[:c]
         
-        for s,b in moves:
-            
+        results = []
+        
+        
+        for s,b in first_moves:
             new_world = world.clone()
+            new_world.set_current_block(b)
             new_world.fast_forward()
-            new_world.set_current_block(world.get_current_block().copy())
+            new_world.set_current_block(world.get_next_block().copy())
             
-            if not single_lookup:
-                next_moves = self.lookup_moves(new_world, next_block)
+            moves = self.lookup_moves(new_world, new_world.get_current_block())
                 
-                if len(next_moves) > 0:
-                    score, next_move = choice(next_moves)#s, b#
-                else:
-                    continue
+            c = max(1,len(moves)/10)
+            second_moves = moves[:c]
             
-            else:
-                score, next_move = s,b
             
-            if best_score is None or best_score < score:
-                best_score = score
-                best_moves = []
-                best_moves.append(b)
-            elif score >= best_score:
-                best_moves.append(b)
+            try:
+                score,  move = second_moves[0]
+                results.append((score,  move))
+                break
+            except:
+                pass
+            
+            
+            blocks = BlockGenerator()
+            
+            for s2,b2 in second_moves:
                 
-        #print best_moves
+                avg_score = 0.0
+                for i in xrange(len(blocks)):
+                    future_world = new_world.clone()
+                    future_world.set_current_block(b2)
+                    future_world.fast_forward()
+                    future_world.set_current_block(blocks[i])
+                    
+                    moves = self.lookup_moves(future_world, future_world.get_current_block())       
+                    
+                    try:
+                        s3, b3 = moves[0]
+                        
+                        avg_score += s3
+                    except:
+                        pass
+                
+                avg_score /= len(blocks)
+                results.append((avg_score,b))
+                
+                
         try:
-            s, b = choice(moves)
-            #print s
-            #b.show()
+            s, b = choice(results)
             return b
         except:
+            print "Returning none, this will fail"
             return None
                 
 
@@ -362,16 +430,13 @@ class AI(Player):
                     continue
                 cworld.fast_forward()    
                 
-                delta_rows = cworld.rows_cleared - world.rows_cleared
-                s = self.score(cworld.world) + delta_rows*100
-                if s > score or score is None:
-                    moves = []
-                    move = (s, b)
-                    moves.append(move)
-                    score = s
-                elif s == score:
-                    move = (s, b)
-                    moves.append(move)
+                s = self.score(cworld, world)
+                
+                move = (s, b)
+                moves.append(move)
+                    
+                
+        moves = sorted(moves, key=lambda x: x[0], reverse=True)
         
         return moves
 		
@@ -410,18 +475,16 @@ def run(ai, gui_enabled=True):
             draw_info_label(window, (20,20), 90, "Cleared:", str(world.rows_cleared))
             pygame.display.flip()
         
-        current_block = ai.get_position(world)
+        current_block = ai.get_position(world.clone())
         world.set_current_block(current_block)
             
         
         world.fast_forward()
         if world.game_over():
-            print "Game over", world.rows_cleared
-            break
-        from time import sleep
-        #sleep(0.1)
-        
-        #print "Rows cleared:",  world.rows_cleared
+            if False and gui_enabled:
+                print "Game over", world.rows_cleared
+            return world.rows_cleared,
+            
         
         
         for event in pygame.event.get(): 
@@ -431,14 +494,14 @@ def run(ai, gui_enabled=True):
     
 
 def demo():
-    ai = AI([])
+    ai = AI([-2,1, -1,-1,2])
     for x in xrange(10):
         run(ai)
     
                 
 def fitness(parameters):
-    ai = AI(parameters, False)
-    return run(ai)
+    ai = AI(parameters)
+    return run(ai, True)
     
 if __name__=="__main__":
     demo()
