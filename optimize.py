@@ -7,6 +7,7 @@ from deap import algorithms
 from deap import base
 from deap import creator
 from deap import tools
+from scoop import futures
 
 from problem import fitness
 from progress import Progress
@@ -27,9 +28,11 @@ def bootstrap(population_size):
                 
         return individ_class(r)
     
-    toolbox.register("individual", initConfiguration, creator.Individual, 4)
+    toolbox.register("individual", initConfiguration, creator.Individual, 5)
   
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+
+    toolbox.register("map", futures.map)
 
     toolbox.register("evaluate", fitness)
     
@@ -91,7 +94,7 @@ def bootstrap(population_size):
 
 
 def main():
-    population_size = 5
+    population_size = 50
     lambda_size = 50
     
     pop, toolbox, hof, stats =   bootstrap(population_size)

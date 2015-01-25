@@ -47,7 +47,7 @@ class Block(object):
             self.rotate_left()
     def copy(self):
         b = Block(self.shape)
-        b.pos[1] = self.pos[1]
+        b.pos[1] = 0
         b.pos[0] = self.pos[0]
         return b
     def step(self):
@@ -56,12 +56,40 @@ class Block(object):
         self.pos[1] -= 1
     def __repr__(self):
         return str(self.pos) + " " + str(self.shape)
+    
+    def get_all_orientations(self):
+        b = self.copy()
+        r = [b.copy()]
+        for x in xrange(4):
+            b.rotate_right()
+            if not b in r:
+                r.append(b.copy())
+        return r
+        
+
+    def __eq__(self, other):
+        try:
+            if len(self.shape) != len(other.shape):
+                return False
+            for col1, col2 in zip(self.shape,other.shape): 
+                if len(col1) != len(col2):
+                    return False
+                for cell1, cell2 in zip(col1, col2):
+                    if cell1 != cell2:
+                        return False
+            return True
+        except:
+            return False
+            
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
     def show(self):
         print "BLOCK:"
         print "Pos:", self.pos
         print "Shape:", self.shape
         print "W/H:", self.width,self.height
-        
+
 class BlockGenerator(object):
     def __init__(self):
         self.pool = []
@@ -110,7 +138,7 @@ class BlockGenerator(object):
         
         
         
-        
+       
         
 
 	
@@ -216,7 +244,10 @@ class World(object):
         return r
         
     def game_over(self):
-        return self.detect_collision()
+        r = False
+        for x in xrange(self.width):
+            r = r or (self.get_col_height(x) == self.height)
+        return self.detect_collision() or r
         
     def check_full_row(self,row):
         for x in xrange(self.width):
@@ -286,17 +317,17 @@ class AI(Player):
     def score(self,world, prev_world, debug = False):
         values = []
 
-        blocked_squares = 0
+        blocked_squares = 0.0
         for x in xrange(0,world_size[0]):
             for y in xrange(world_size[1]-1, -1, -1):
-                if world.get_col_height(x) <= world_size[1]-y: #
-                    #print "Breaking", y
-                    break
-                if world[x][y] is None and (world_size[1]-y) < world.get_col_height(x):
-                    blocked_squares += 1
+                if world[x][y] is None and world.get_col_height(x) > world_size[1]-y: 
+                   blocked_squares += 1
+                #else:
+                #    print "Skipping", world.get_col_height(x), world_size[1]-y
         #print blocked_squares
         blocked_squares /= world_size[0]*world_size[1]
         values.append(blocked_squares)
+        print blocked_squares
         
         compacted = 0.0
         count = 0
@@ -357,52 +388,59 @@ class AI(Player):
         results = []
         
         
-        for s,b in first_moves:
-            new_world = world.clone()
-            new_world.set_current_block(b)
-            new_world.fast_forward()
-            new_world.set_current_block(world.get_next_block().copy())
+        #for s,b in first_moves:
+            #new_world = world.clone()
+            #new_world.set_current_block(b)
+            #new_world.fast_forward()
+            #new_world.set_current_block(world.get_next_block().copy())
             
-            moves = self.lookup_moves(new_world, new_world.get_current_block())
+            #moves = self.lookup_moves(new_world, new_world.get_current_block())
                 
-            c = max(1,len(moves)/10)
-            second_moves = moves[:c]
+            #c = max(1,len(moves)/10)
+            #second_moves = moves[:c]
             
             
-            try:
-                score,  move = second_moves[0]
-                results.append((score,  move))
-                break
-            except:
-                pass
+            #try:
+                #score,  move = second_moves[0]
+                #results.append((score,  move))
+                #break
+            #except:
+                #continue
             
             
-            blocks = BlockGenerator()
+            #blocks = BlockGenerator()
             
-            for s2,b2 in second_moves:
+            #for s2,b2 in second_moves:
                 
-                avg_score = 0.0
-                for i in xrange(len(blocks)):
-                    future_world = new_world.clone()
-                    future_world.set_current_block(b2)
-                    future_world.fast_forward()
-                    future_world.set_current_block(blocks[i])
+                #avg_score = 0.0
+                #for i in xrange(len(blocks)):
+                    #future_world = new_world.clone()
+                    #future_world.set_current_block(b2)
+                    #future_world.fast_forward()
+                    #future_world.set_current_block(blocks[i])
                     
-                    moves = self.lookup_moves(future_world, future_world.get_current_block())       
+                    #moves = self.lookup_moves(future_world, future_world.get_current_block())       
                     
-                    try:
-                        s3, b3 = moves[0]
+                    #try:
+                        #s3, b3 = moves[0]
                         
-                        avg_score += s3
-                    except:
-                        pass
+                        #avg_score += s3
+                    #except:
+                        #pass
                 
-                avg_score /= len(blocks)
-                results.append((avg_score,b))
+                #avg_score /= len(blocks)
+                #results.append((avg_score,b))
                 
+                
+        #try:
+            #s, b = choice(results)
+            #return b
+        #except:
+            #print "Returning none, this will fail"
+            #return None
                 
         try:
-            s, b = choice(results)
+            s, b = choice(first_moves)
             return b
         except:
             print "Returning none, this will fail"
@@ -414,14 +452,12 @@ class AI(Player):
         score = None
         
         moves = []
-        
-        for r in xrange(4):
+        all_orientations =  world.get_current_block().get_all_orientations()
+        for cblock in all_orientations:
             
-            for x in xrange(world_size[0]-b.width+1):
+            for x in xrange(world_size[0]):
                 cworld = world.clone()
-                cblock = cworld.get_current_block()
-                for i in xrange(r):
-                    cblock.rotate_left()
+                cworld.set_current_block(cblock)
                 cblock.pos[0] = x
                 
                 b = cblock.copy()
@@ -430,6 +466,8 @@ class AI(Player):
                     continue
                 cworld.fast_forward()    
                 
+                
+                print cblock, b, x,
                 s = self.score(cworld, world)
                 
                 move = (s, b)
@@ -437,6 +475,11 @@ class AI(Player):
                     
                 
         moves = sorted(moves, key=lambda x: x[0], reverse=True)
+        
+        best_score = moves[0][0]
+        print "Best", best_score
+        print "Scores", map(lambda x: x[0], moves)
+        moves = filter(lambda x: x[0]>=best_score, moves)
         
         return moves
 		
@@ -484,7 +527,7 @@ def run(ai, gui_enabled=True):
             if False and gui_enabled:
                 print "Game over", world.rows_cleared
             return world.rows_cleared,
-            
+        #raw_input()
         
         
         for event in pygame.event.get(): 
@@ -494,7 +537,8 @@ def run(ai, gui_enabled=True):
     
 
 def demo():
-    ai = AI([-2,1, -1,-1,2])
+    #ai = AI([-2,1, -1,-1,2])
+    ai = AI([-1,0.1,0,-0.2,0.1])
     for x in xrange(10):
         run(ai)
     
