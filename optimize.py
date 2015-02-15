@@ -2,12 +2,12 @@ import random
 import os
 import numpy
 import traceback,sys
+import multiprocessing
 
 from deap import algorithms
 from deap import base
 from deap import creator
 from deap import tools
-from scoop import futures
 
 from problem import fitness
 from progress import Progress
@@ -22,17 +22,18 @@ def bootstrap(population_size):
         r = []
         
         for x in xrange(weight_count):
-            weight = random.uniform(-100,100)
+            weight = random.uniform(0.0,1.0)
             r.append(weight)
                 
                 
         return individ_class(r)
     
-    toolbox.register("individual", initConfiguration, creator.Individual, 5)
+    toolbox.register("individual", initConfiguration, creator.Individual, 6)
   
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-    toolbox.register("map", futures.map)
+    pool = multiprocessing.Pool()
+    toolbox.register("map", pool.map)
 
     toolbox.register("evaluate", fitness)
     
@@ -68,9 +69,9 @@ def bootstrap(population_size):
     def mutate(individual):
         index = random.randint(0,len(individual)-1)
         
-        individual[index] += random.gauss(0,5.0)
+        individual[index] += random.gauss(0,0.05)
     
-        individual[index] = max(-100.0, min(100.0, individual[index]))
+        individual[index] = max(0.0, min(1.0, individual[index]))
         
         return individual,
     

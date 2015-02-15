@@ -6,7 +6,7 @@ import numpy as np
 pygame.init()
 
 
-world_size = (10,40)
+world_size = (12,40)
 square_size = 20
 
 width = (world_size[0]+5)*(square_size+2) + 10
@@ -326,8 +326,8 @@ class AI(Player):
                 #    print "Skipping", world.get_col_height(x), world_size[1]-y
         #print blocked_squares
         blocked_squares /= world_size[0]*world_size[1]
-        values.append(blocked_squares)
-        print blocked_squares
+        values.append(-blocked_squares)
+        #print blocked_squares
         
         compacted = 0.0
         count = 0
@@ -342,15 +342,13 @@ class AI(Player):
             
         values.append(compacted)
         
-        #future_potential = 0.0
-        #for y in xrange(0,world_size[1]-1):
-            #for x in xrange(0,world_size[0]):
-                #if world[x][y] is None:
-                    #for y2 in xrange(0,y):
-                            #if world[x][y2] is None:
-                                #future_potential += 1
-        #future_potential /= 1000
-        #values.append(future_potential)
+        future_potential = 0.0
+        for x in xrange(0,world_size[0]):
+            for y in xrange(world_size[1]-1, -1, -1):
+                if world[x][y] is None and world.get_col_height(x) > world_size[1]-y: 
+                    future_potential += world.get_col_height(x)-y
+        future_potential /= 1000
+        values.append(-future_potential)
                         
                         
         highest_row = 0
@@ -358,7 +356,7 @@ class AI(Player):
             highest_row = max(highest_row, float(world.get_col_height(x)))
             
         highest_row = (highest_row)/world_size[1]
-        values.append(highest_row)
+        values.append(-highest_row)
         
         
         col_diff = 0
@@ -368,11 +366,10 @@ class AI(Player):
             col_diff += abs(last_height-cur_height)
             
         col_diff /= (world_size[0]-1)*world_size[1]
-        values.append(col_diff)
+        values.append(-col_diff)
         
         delta_rows = world.rows_cleared - prev_world.rows_cleared
         values.append(delta_rows)
-                    
         
         aprox_score = np.sum(np.array(values) * np.array(self.weights))
         
@@ -382,69 +379,69 @@ class AI(Player):
         
         moves = self.lookup_moves(world, world.get_current_block())
         
-        c = max(1,len(moves)/10)
-        first_moves = moves[:c]
+        lookahead = 1
+        
+        max_score = max(map(lambda x: x[0], moves))
+        first_moves = filter( lambda x: x[0] >= max_score,moves)
+        
         
         results = []
         
-        
-        #for s,b in first_moves:
-            #new_world = world.clone()
-            #new_world.set_current_block(b)
-            #new_world.fast_forward()
-            #new_world.set_current_block(world.get_next_block().copy())
-            
-            #moves = self.lookup_moves(new_world, new_world.get_current_block())
+        if lookahead < 2:
+            results.extend(first_moves)
+        else:
+            for s,b in first_moves:
+                new_world = world.clone()
+                new_world.set_current_block(b)
+                new_world.fast_forward()
+                new_world.set_current_block(world.get_next_block().copy())
                 
-            #c = max(1,len(moves)/10)
-            #second_moves = moves[:c]
-            
-            
-            #try:
-                #score,  move = second_moves[0]
-                #results.append((score,  move))
-                #break
-            #except:
-                #continue
-            
-            
-            #blocks = BlockGenerator()
-            
-            #for s2,b2 in second_moves:
+                moves = self.lookup_moves(new_world, new_world.get_current_block())
+                    
+                max_score = max(map(lambda x: x[0], moves))
+                second_moves = filter( lambda x: x[0] >= max_score,moves)
                 
-                #avg_score = 0.0
-                #for i in xrange(len(blocks)):
-                    #future_world = new_world.clone()
-                    #future_world.set_current_block(b2)
-                    #future_world.fast_forward()
-                    #future_world.set_current_block(blocks[i])
+                if lookahead < 3:
+                    for s2,b2 in second_moves:
+                        results.append((s2,  b))
+                
+                else:
+                    blocks = BlockGenerator()
                     
-                    #moves = self.lookup_moves(future_world, future_world.get_current_block())       
-                    
-                    #try:
-                        #s3, b3 = moves[0]
+                    for s2,b2 in second_moves:
                         
-                        #avg_score += s3
-                    #except:
-                        #pass
+                        avg_score = 0.0
+                        for i in xrange(len(blocks)):
+                            future_world = new_world.clone()
+                            future_world.set_current_block(b2.copy())
+                            future_world.fast_forward()
+                            future_world.set_current_block(blocks[i])
+                            
+                            moves = self.lookup_moves(future_world, future_world.get_current_block())       
+                            
+                            try:
+                                s3, b3 = moves[0]
+                                
+                                avg_score += s3
+                            except:
+                                pass
+                        
+                        avg_score /= len(blocks)
+                        results.append((avg_score,b))
                 
-                #avg_score /= len(blocks)
-                #results.append((avg_score,b))
-                
-                
-        #try:
-            #s, b = choice(results)
-            #return b
-        #except:
-            #print "Returning none, this will fail"
-            #return None
                 
         try:
-            s, b = choice(first_moves)
+            
+            max_score = max(map(lambda x: x[0], results))
+            results = filter( lambda x: x[0] >= max_score,results)
+            
+            #results = sorted(results, key=lambda x: x[0], reverse=True)
+            s, b = choice(results)
             return b
         except:
             print "Returning none, this will fail"
             return None
+                
                 
 
         
@@ -457,17 +454,17 @@ class AI(Player):
             
             for x in xrange(world_size[0]):
                 cworld = world.clone()
-                cworld.set_current_block(cblock)
+                cworld.set_current_block(cblock.copy())
                 cblock.pos[0] = x
                 
-                b = cblock.copy()
+                b = cworld.get_current_block().copy()
                 
                 if cworld.detect_collision():
                     continue
                 cworld.fast_forward()    
                 
                 
-                print cblock, b, x,
+                #print cblock, b, x,
                 s = self.score(cworld, world)
                 
                 move = (s, b)
@@ -477,8 +474,8 @@ class AI(Player):
         moves = sorted(moves, key=lambda x: x[0], reverse=True)
         
         best_score = moves[0][0]
-        print "Best", best_score
-        print "Scores", map(lambda x: x[0], moves)
+        #print "Best", best_score
+        #print "Scores", map(lambda x: x[0], moves)
         moves = filter(lambda x: x[0]>=best_score, moves)
         
         return moves
@@ -528,6 +525,7 @@ def run(ai, gui_enabled=True):
                 print "Game over", world.rows_cleared
             return world.rows_cleared,
         #raw_input()
+        #raw_input()
         
         
         for event in pygame.event.get(): 
@@ -538,7 +536,8 @@ def run(ai, gui_enabled=True):
 
 def demo():
     #ai = AI([-2,1, -1,-1,2])
-    ai = AI([-1,0.1,0,-0.2,0.1])
+    #blocked, compacted, future_pot, highest_row, diff, delta_rows
+    ai = AI([0.2, 0.0, 0.0, 0.0, 0.2, 0.2])
     for x in xrange(10):
         run(ai)
     
