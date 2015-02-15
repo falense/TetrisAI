@@ -14,6 +14,7 @@ height = world_size[1]*(square_size+2) + 10
 window_size = [width,height]
 window = pygame.display.set_mode(window_size)
 from random import randint, choice
+from time import sleep
 
 white = (255,255,255)
 def get_random_color():
@@ -500,14 +501,17 @@ def draw_info_label(window, position, space, label, value):
 	window.blit(text, (position[0]+ space,position[1] ))   
 
 
-def run(ai, gui_enabled=True):
+from pygame.locals import *
+def run(ai = False, gui_enabled=True):
     
     world = World(world_size[0], world_size[1])
+    
+    time_to_step = 1000
     
     while True:
         next_block = world.get_next_block()
         
-        if gui_enabled:
+        if gui_enabled and time_to_step < 0:
             window.fill((0,0,0))
             draw_world(window,world)
             draw_block(window, (square_size+2)*(world_size[0]-next_block.pos[0]+1),(square_size+2)*2, next_block)
@@ -515,32 +519,65 @@ def run(ai, gui_enabled=True):
             draw_info_label(window, (20,20), 90, "Cleared:", str(world.rows_cleared))
             pygame.display.flip()
         
-        current_block = ai.get_position(world.clone())
-        world.set_current_block(current_block)
+        if ai!=False:
             
+            current_block = ai.get_position(world.clone())
+            world.set_current_block(current_block)
+                
+            
+            world.fast_forward()
+            if world.game_over():
+                if False and gui_enabled:
+                    print "Game over", world.rows_cleared
+                return world.rows_cleared,
+            #raw_input()
+            #raw_input()
         
-        world.fast_forward()
-        if world.game_over():
-            if False and gui_enabled:
-                print "Game over", world.rows_cleared
-            return world.rows_cleared,
-        #raw_input()
-        #raw_input()
         
+        
+        
+        if time_to_step < 0:
+        
+            time_to_step = 1000
+            world.step()
+        else:
+            time_to_step -= 1
+            
+        #print time_to_step
+            
         
         for event in pygame.event.get(): 
             if event.type == pygame.QUIT: 
                 pygame.quit()
+            elif event.type == pygame.KEYUP:
+                s=  chr(event.key)
+            
+                current_block =  world.get_current_block()
+               
+                
+                pos_x = current_block.pos[0]
+                
+               #keys = event.key.get_pressed()
+                if s == "l":
+                    pos_x += 1
+                    
+                if s == "k":
+                    pos_x -= 1
+                
+                pos_x = max(0,min(world_size[0],pos_x))
+                
+                current_block.pos[0] = pos_x
+                
 
     
 
 def demo():
     #ai = AI([-2,1, -1,-1,2])
     #blocked, compacted, future_pot, highest_row, diff, delta_rows
-    ai = AI([0.2, 0.0, 0.0, 0.0, 0.2, 0.2])
-    for x in xrange(10):
-        run(ai)
-    
+    #ai = AI([0.2, 0.0, 0.0, 0.0, 0.2, 0.2])
+    #for x in xrange(10):
+    #    run(ai)
+    run()
                 
 def fitness(parameters):
     ai = AI(parameters)
