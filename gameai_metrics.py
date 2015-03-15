@@ -6,8 +6,9 @@ class BlockedMetric(Metric):
     def get_score(self, world, prev_world):
         blocked_squares = 0.0
         for x in xrange(world.width):
-            for y in xrange(world.height-1, -1, -1):
-                if world[x][y] is None and world.get_col_height(x) > world.height-y: 
+            column = world[x]
+            for y in xrange(world.get_col_height(x)-1, -1, -1):
+                if column[y] is None and world.get_col_height(x) > world.height-y: 
                    blocked_squares += 1.0
         blocked_squares /= world.width*world.height
         return -blocked_squares

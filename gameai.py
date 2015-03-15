@@ -16,7 +16,7 @@ class AI(Player):
         self.metrics = []
         
         self.metrics.append(BlockedMetric())
-        self.metrics.append(CompactedMetric())
+        #self.metrics.append(CompactedMetric())
         #self.metrics.append(FuturePotentialMetric())
         self.metrics.append(HighestColMetric())
         self.metrics.append(ColumnDiffMetric())

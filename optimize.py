@@ -32,8 +32,8 @@ def bootstrap(population_size):
   
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-    pool = multiprocessing.Pool()
-    toolbox.register("map", pool.map)
+    #pool = multiprocessing.Pool()
+   # toolbox.register("map", pool.map)
 
     toolbox.register("evaluate", fitness)
     
@@ -69,7 +69,7 @@ def bootstrap(population_size):
     def mutate(individual):
         index = random.randint(0,len(individual)-1)
         
-        individual[index] += random.gauss(0,0.05)
+        individual[index] += random.gauss(0,0.1)
     
         individual[index] = max(0.0, min(1.0, individual[index]))
         

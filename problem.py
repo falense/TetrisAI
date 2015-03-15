@@ -143,7 +143,7 @@ class World(object):
             self.world.append(column)
             
         
-        self.col_height = [None]*self.width
+        self.col_height = [0]*self.width
             
         
         self.block_generator = BlockGenerator()
@@ -177,7 +177,9 @@ class World(object):
             for square_y, active in enumerate(column):
                 if active:
                     self.world[square_x+b.pos[0]][square_y+b.pos[1]] = b.color
-                    self.col_height[square_x+b.pos[0]] = None
+                    new_y = square_y+b.pos[1]
+                    if self.height - new_y  > self.col_height[square_x+b.pos[0]]:
+                        self.col_height[square_x+b.pos[0]] = self.height - new_y
         
     def step(self):
         self.current_block.step()
@@ -206,8 +208,8 @@ class World(object):
                 return self.height-y
         return 0
     def get_col_height(self, col):
-        if self.col_height[col] is None:
-            self.col_height[col] = self.calc_col_height(col)
+        #if self.col_height[col] is None:
+        #    self.col_height[col] = self.calc_col_height(col)
         return self.col_height[col]
     def detect_collision(self):
         b = self.current_block
@@ -247,6 +249,9 @@ class World(object):
                 for v in xrange(y-1,-1,-1):
                     for x in xrange(self.width):
                         self.world[x][v+1] = self.world[x][v]
+                
+                for x in xrange(self.width):
+                    self.col_height[x] -= 1
                 return self.clear_rows()+1
         return 0
         
@@ -263,11 +268,13 @@ class World(object):
 
 
 def run(ai = False, gui_enabled=True):
-    seed(2)
 
     from pygame.locals import *
     
     world = World(world_size[0], world_size[1])
+    
+    
+    window = pygame_init(world)
     
     time_to_step = 1000
     
@@ -292,7 +299,7 @@ def run(ai = False, gui_enabled=True):
             if world.game_over():
                 if False and gui_enabled:
                     print "Game over", world.rows_cleared
-                return world.rows_cleared,
+                return world.rows_cleared
             #raw_input()
             
         
@@ -334,16 +341,21 @@ def run(ai = False, gui_enabled=True):
     
 
 def demo():
+    seed(2)
     ai = AI([1,1, 1,1,1, 1])
     #blocked, compacted, future_pot, highest_row, diff, delta_rows
     #ai = AI([0.2, 0.0, 0.0, 0.0, 0.2, 0.2])
     for x in xrange(10):
-        run(ai)
+        run(ai, False)
     #run()
                 
 def fitness(parameters):
+    avg = 0.0
     ai = AI(parameters)
-    return run(ai, True)
+    for x in xrange(10):
+        r = run(ai, True)
+        avg += r
+    return avg/10.0
     
 if __name__=="__main__":
     demo()

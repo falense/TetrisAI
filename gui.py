@@ -1,20 +1,11 @@
 
 import pygame
 
-from problem import world_size
 from random import randint
 
 square_size = 20
 
 
-
-pygame.init()
-
-
-width = (world_size[0]+5)*(square_size+2) + 10
-height = world_size[1]*(square_size+2) + 10 
-window_size = [width,height]
-window = pygame.display.set_mode(window_size)
 
 white = (255,255,255)
 
@@ -63,3 +54,14 @@ def draw_info_label(window, position, space, label, value):
 	window.blit(text, position)   
 	text = font.render(str(value), 1, white)
 	window.blit(text, (position[0]+ space,position[1] ))   
+    
+def pygame_init(world):
+
+
+    width = (world.width+5)*(square_size+2) + 10
+    height = world.height*(square_size+2) + 10 
+    window_size = [width,height]
+    return pygame.display.set_mode(window_size)
+
+
+pygame.init()
