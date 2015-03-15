@@ -99,18 +99,18 @@ class AI(Player):
             #print "Returning none, this will fail"
             #return None
                 
-     def get_position(self,world):
-        
+    def get_position(self,world):
+
         moves = self.lookup_moves(world, world.get_current_block())
-        
-        lookahead = 1
-        
+
+        lookahead = 2
+
         max_score = max(map(lambda x: x[0], moves))
         first_moves = filter( lambda x: x[0] >= max_score,moves)
-        
-        
+
+
         results = []
-        
+
         if lookahead < 2:
             results.extend(first_moves)
         else:
@@ -168,7 +168,7 @@ class AI(Player):
             print traceback.format_exc()
             print "Returning none, this will fail"
             return None
-                
+            
                 
 
         
@@ -196,8 +196,8 @@ class AI(Player):
                 
         moves = sorted(moves, key=lambda x: x[0], reverse=True)
         
-        #best_score = moves[0][0]
-        #moves = filter(lambda x: x[0]>=best_score, moves)
+        best_score = moves[0][0]
+        moves = filter(lambda x: x[0]>=best_score, moves)
         
         return moves
 		
