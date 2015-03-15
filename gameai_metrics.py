@@ -8,13 +8,9 @@ class BlockedMetric(Metric):
         for x in xrange(world.width):
             for y in xrange(world.height-1, -1, -1):
                 if world[x][y] is None and world.get_col_height(x) > world.height-y: 
-                   blocked_squares += 1
-                #else:
-                #    print "Skipping", world.get_col_height(x), world_size[1]-y
-        #print blocked_squares
+                   blocked_squares += 1.0
         blocked_squares /= world.width*world.height
-        #print blocked_squares
-        return -blocked_squares
+        return 1.0-blocked_squares
         
 class CompactedMetric(Metric):
     def get_score(self, world, prev_world):
@@ -26,9 +22,9 @@ class CompactedMetric(Metric):
                     compacted += float(y)
                     count += 1
         if count > 0:
-            compacted /= count
+            compacted /= count*world.height
             
-        return compacted
+        return 1.0 - compacted
         
 class FuturePotentialMetric(Metric):
     def get_score(self, world, prev_world):

@@ -291,7 +291,7 @@ def run(ai = False, gui_enabled=True):
                 if False and gui_enabled:
                     print "Game over", world.rows_cleared
                 return world.rows_cleared,
-            #raw_input()
+            raw_input()
             #raw_input()
         
         
@@ -333,9 +333,9 @@ def run(ai = False, gui_enabled=True):
     
 
 def demo():
-    ai = AI([1,1, 1,1,1])
+    ai = AI([1,1, 1,1,1, 1])
     #blocked, compacted, future_pot, highest_row, diff, delta_rows
-    ai = AI([0.2, 0.0, 0.0, 0.0, 0.2, 0.2])
+    #ai = AI([0.2, 0.0, 0.0, 0.0, 0.2, 0.2])
     for x in xrange(10):
         run(ai)
     #run()
