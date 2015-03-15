@@ -10,7 +10,7 @@ class BlockedMetric(Metric):
                 if world[x][y] is None and world.get_col_height(x) > world.height-y: 
                    blocked_squares += 1.0
         blocked_squares /= world.width*world.height
-        return 1.0-blocked_squares
+        return -blocked_squares
         
 class CompactedMetric(Metric):
     def get_score(self, world, prev_world):
@@ -24,7 +24,7 @@ class CompactedMetric(Metric):
         if count > 0:
             compacted /= count*world.height
             
-        return 1.0 - compacted
+        return - compacted
         
 class FuturePotentialMetric(Metric):
     def get_score(self, world, prev_world):
@@ -52,14 +52,14 @@ class HighestColMetric(Metric):
 class ColumnDiffMetric(Metric):
     def get_score(self,world, prev_world):
         
-        col_diff = 0
+        col_diff = 0.0
         last_height = world.get_col_height(0)
         for x in xrange(1,world.width):
             cur_height = world.get_col_height(x)
             col_diff += abs(last_height-cur_height)
             
         col_diff /= (world.width-1)*world.height
-        return -col_diff
+        return -col_diff*0.1
         
         
         
@@ -68,4 +68,4 @@ class DeltaRowsMetric(Metric):
         
         delta_rows = world.rows_cleared - prev_world.rows_cleared
         
-        return delta_rows
+        return delta_rows*10

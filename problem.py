@@ -115,7 +115,7 @@ class BlockGenerator(object):
         return b
         
     def peak(self):
-        shape = self.pool[1]
+        shape = self.pool[0]
         b = Block(shape)
         return b
         
@@ -197,6 +197,8 @@ class World(object):
             w.world[index_x] = col[:]
             
         w.current_block = self.current_block.copy()
+        
+        w.rows_cleared = self.rows_cleared 
         return w
     def calc_col_height(self, col):
         for y in xrange(self.height):
@@ -291,9 +293,8 @@ def run(ai = False, gui_enabled=True):
                 if False and gui_enabled:
                     print "Game over", world.rows_cleared
                 return world.rows_cleared,
-            raw_input()
             #raw_input()
-        
+            
         
         
         
