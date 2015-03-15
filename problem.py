@@ -1,27 +1,18 @@
 
 
-import pygame
 import numpy as np
 
-pygame.init()
+from random import seed, randint, choice
+from copy import deepcopy
 
+
+from gameai import AI, Human
+from gui import *
+	
 
 world_size = (12,40)
-square_size = 20
 
-width = (world_size[0]+5)*(square_size+2) + 10
-height = world_size[1]*(square_size+2) + 10 
-window_size = [width,height]
-window = pygame.display.set_mode(window_size)
-from random import randint, choice
 
-white = (255,255,255)
-def get_random_color():
-	#c = (randint(0,255),randint(0,255),randint(0,255))
-	t = randint(0,100)
-	c = (t,randint(100,255),t+50)
-	#return (randint(0,255),randint(0,255),randint(0,255))
-	return c
 
 class Block(object):
     def __init__(self, shape):
@@ -137,12 +128,6 @@ class BlockGenerator(object):
         return len(self.pool)
         
         
-        
-       
-        
-
-	
-from copy import deepcopy
 
 class World(object):
     
@@ -272,235 +257,12 @@ class World(object):
 
 
 
-def draw_square(surf,square_x,square_y, color, offset_x = 0, offset_y = 0):
-	global square_size
-	x = 5 + square_x* (square_size + 2) + offset_x
-	y = 5 + square_y* (square_size + 2) + offset_y
-	pygame.draw.rect(surf, color, (x,y,square_size,square_size))
 
-
-
-	x = 5 + square_x* (square_size + 2) + offset_x + 2
-	y = 5 + square_y* (square_size + 2) + offset_y + 2
-	pygame.draw.rect(surf, map(lambda x: x*0.6, color), (x,y,square_size - 4,square_size - 4))
-
-	
-def draw_block(surf, offset_x, offset_y, b):
-	for square_x, column in enumerate(b.shape):
-		for square_y, active in enumerate(column):
-			if active:
-				#print square_x+b.pos[0], square_y+b.pos[1]
-				draw_square(surf, square_x+b.pos[0], square_y+b.pos[1], b.color, offset_x, offset_y)
-			
-
-def draw_world(surf, world):
-	for square_x, column in enumerate(world.world):
-		for square_y, color in enumerate(column):
-			if color != None:
-				draw_square(surf, square_x, square_y, color, 0, 0)
-			else:
-				draw_square(surf, square_x, square_y, (50,50,50), 0, 0)
-				
-	draw_block(surf, 0,0, world.get_current_block())
-
-
-    
-class Player(object):
-	def get_position(world, current_block):
-		pass
-		
-			
-class AI(Player):
-    def __init__(self, parameters):
-        self.weights = parameters
-        
-    def score(self,world, prev_world, debug = False):
-        values = []
-
-        blocked_squares = 0.0
-        for x in xrange(0,world_size[0]):
-            for y in xrange(world_size[1]-1, -1, -1):
-                if world[x][y] is None and world.get_col_height(x) > world_size[1]-y: 
-                   blocked_squares += 1
-                #else:
-                #    print "Skipping", world.get_col_height(x), world_size[1]-y
-        #print blocked_squares
-        blocked_squares /= world_size[0]*world_size[1]
-        values.append(-blocked_squares)
-        #print blocked_squares
-        
-        compacted = 0.0
-        count = 0
-        for y in xrange(world_size[1]):
-            for x in xrange(world_size[0]):
-                if world[x][y] is not None:
-                    compacted += float(y)
-                    count += 1
-        if count > 0:
-            compacted /= count
-            
-            
-        values.append(compacted)
-        
-        future_potential = 0.0
-        for x in xrange(0,world_size[0]):
-            for y in xrange(world_size[1]-1, -1, -1):
-                if world[x][y] is None and world.get_col_height(x) > world_size[1]-y: 
-                    future_potential += world.get_col_height(x)-y
-        future_potential /= 1000
-        values.append(-future_potential)
-                        
-                        
-        highest_row = 0
-        for x in xrange(0,world_size[0]):
-            highest_row = max(highest_row, float(world.get_col_height(x)))
-            
-        highest_row = (highest_row)/world_size[1]
-        values.append(-highest_row)
-        
-        
-        col_diff = 0
-        last_height = world.get_col_height(0)
-        for x in xrange(1,world_size[0]):
-            cur_height = world.get_col_height(x)
-            col_diff += abs(last_height-cur_height)
-            
-        col_diff /= (world_size[0]-1)*world_size[1]
-        values.append(-col_diff)
-        
-        delta_rows = world.rows_cleared - prev_world.rows_cleared
-        values.append(delta_rows)
-        
-        aprox_score = np.sum(np.array(values) * np.array(self.weights))
-        
-        
-        return aprox_score
-    def get_position(self,world):
-        
-        moves = self.lookup_moves(world, world.get_current_block())
-        
-        lookahead = 1
-        
-        max_score = max(map(lambda x: x[0], moves))
-        first_moves = filter( lambda x: x[0] >= max_score,moves)
-        
-        
-        results = []
-        
-        if lookahead < 2:
-            results.extend(first_moves)
-        else:
-            for s,b in first_moves:
-                new_world = world.clone()
-                new_world.set_current_block(b)
-                new_world.fast_forward()
-                new_world.set_current_block(world.get_next_block().copy())
-                
-                moves = self.lookup_moves(new_world, new_world.get_current_block())
-                    
-                max_score = max(map(lambda x: x[0], moves))
-                second_moves = filter( lambda x: x[0] >= max_score,moves)
-                
-                if lookahead < 3:
-                    for s2,b2 in second_moves:
-                        results.append((s2,  b))
-                
-                else:
-                    blocks = BlockGenerator()
-                    
-                    for s2,b2 in second_moves:
-                        
-                        avg_score = 0.0
-                        for i in xrange(len(blocks)):
-                            future_world = new_world.clone()
-                            future_world.set_current_block(b2.copy())
-                            future_world.fast_forward()
-                            future_world.set_current_block(blocks[i])
-                            
-                            moves = self.lookup_moves(future_world, future_world.get_current_block())       
-                            
-                            try:
-                                s3, b3 = moves[0]
-                                
-                                avg_score += s3
-                            except:
-                                pass
-                        
-                        avg_score /= len(blocks)
-                        results.append((avg_score,b))
-                
-                
-        try:
-            
-            max_score = max(map(lambda x: x[0], results))
-            results = filter( lambda x: x[0] >= max_score,results)
-            
-            #results = sorted(results, key=lambda x: x[0], reverse=True)
-            s, b = choice(results)
-            return b
-        except:
-            print "Returning none, this will fail"
-            return None
-                
-                
-
-        
-    def lookup_moves(self, world, b):		
-        score = None
-        
-        moves = []
-        all_orientations =  world.get_current_block().get_all_orientations()
-        for cblock in all_orientations:
-            
-            for x in xrange(world_size[0]):
-                cworld = world.clone()
-                cworld.set_current_block(cblock.copy())
-                cblock.pos[0] = x
-                
-                b = cworld.get_current_block().copy()
-                
-                if cworld.detect_collision():
-                    continue
-                cworld.fast_forward()    
-                
-                
-                #print cblock, b, x,
-                s = self.score(cworld, world)
-                
-                move = (s, b)
-                moves.append(move)
-                    
-                
-        moves = sorted(moves, key=lambda x: x[0], reverse=True)
-        
-        best_score = moves[0][0]
-        #print "Best", best_score
-        #print "Scores", map(lambda x: x[0], moves)
-        moves = filter(lambda x: x[0]>=best_score, moves)
-        
-        return moves
-		
-		
-class Human(Player):
-	def get_position(world, current_block):
-		pass
-
-	
-from random import seed
-
-seed(2)
-
-
-def draw_info_label(window, position, space, label, value):
-
-	font = pygame.font.Font(None,24)
-	text = font.render(label, 1, white)
-	window.blit(text, position)   
-	text = font.render(str(value), 1, white)
-	window.blit(text, (position[0]+ space,position[1] ))   
 
 
 def run(ai, gui_enabled=True):
+    seed(2)
+
     
     world = World(world_size[0], world_size[1])
     
