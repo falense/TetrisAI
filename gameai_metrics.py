@@ -13,6 +13,21 @@ class BlockedMetric(Metric):
         blocked_squares /= world.width*world.height
         return -blocked_squares
         
+class BlockedMetric2(Metric):
+    def get_score(self, world, prev_world):
+		blocked_squares = 0.0
+		for x in xrange(world.width):
+			column = world[x]
+			#print world.get_col_height(x),
+			for y in xrange(world.height):
+				if column[y] is None and world.get_col_height(x) > world.height-y: 
+					#print "Found blocked"
+					blocked_squares += 1.0
+		#print
+		#print blocked_squares
+		blocked_squares /= world.width*world.height
+		return -blocked_squares
+        
 class CompactedMetric(Metric):
     def get_score(self, world, prev_world):
         compacted = 0.0
@@ -20,12 +35,12 @@ class CompactedMetric(Metric):
         for y in xrange(world.height):
             for x in xrange(world.width):
                 if world[x][y] is not None:
-                    compacted += float(y)
+                    compacted += world.height-float(y)
                     count += 1
         if count > 0:
             compacted /= count*world.height
             
-        return - compacted
+        return -compacted
         
 class FuturePotentialMetric(Metric):
     def get_score(self, world, prev_world):
@@ -66,7 +81,4 @@ class ColumnDiffMetric(Metric):
         
 class DeltaRowsMetric(Metric):
     def get_score(self,world, prev_world):
-        
-        delta_rows = world.rows_cleared - prev_world.rows_cleared
-        
-        return delta_rows*10
+		return  world.rows_cleared*10

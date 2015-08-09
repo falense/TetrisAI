@@ -208,9 +208,10 @@ class World(object):
                 return self.height-y
         return 0
     def get_col_height(self, col):
+		return self.calc_col_height(col)
         #if self.col_height[col] is None:
         #    self.col_height[col] = self.calc_col_height(col)
-        return self.col_height[col]
+        #return self.col_height[col]
     def detect_collision(self):
         b = self.current_block
         shape = self.current_block.shape
@@ -342,11 +343,11 @@ def run(ai = False, gui_enabled=True):
 
 def demo():
     seed(2)
-    ai = AI([1,1, 1,1,1, 1])
+    ai = AI([1,0.1, None,0.01,None, 0.5])
     #blocked, compacted, future_pot, highest_row, diff, delta_rows
     #ai = AI([0.2, 0.0, 0.0, 0.0, 0.2, 0.2])
     for x in xrange(10):
-        run(ai, False)
+        run(ai)
     #run()
                 
 def fitness(parameters):

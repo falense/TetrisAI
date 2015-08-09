@@ -15,9 +15,9 @@ class AI(Player):
         
         self.metrics = []
         
-        self.metrics.append(BlockedMetric())
-        #self.metrics.append(CompactedMetric())
-        #self.metrics.append(FuturePotentialMetric())
+        self.metrics.append(BlockedMetric2())
+        self.metrics.append(CompactedMetric())
+        self.metrics.append(FuturePotentialMetric())
         self.metrics.append(HighestColMetric())
         self.metrics.append(ColumnDiffMetric())
         self.metrics.append(DeltaRowsMetric())
@@ -28,15 +28,21 @@ class AI(Player):
 
 
         for metric, weight in zip(self.metrics, self.weights):
-            n = metric.get_score(world, prev_world)*weight
-            try:
-                o = metric.get_score(prev_world, None)*weight
-            except:
-                o = 0
-            score += n
-            
-            
-            debugging.append((metric.__class__.__name__, n, o))
+			if weight is None:
+				continue
+
+			n = metric.get_score(world, prev_world)*weight
+			try:
+				o = metric.get_score(prev_world, None)*weight
+			except:
+				import traceback
+				print traceback.format_exc()
+				print metric.__class__.__name__, " failed to calculate"
+				o = 0
+			score += n
+
+
+			debugging.append((metric.__class__.__name__, n, o))
         return score, debugging
 
                 
@@ -47,20 +53,25 @@ class AI(Player):
         for s,b,w,d in moves:
             results.append((s,b,d))
 
+
+        results = sorted(results, key=lambda x: x[0], reverse=True)[:len(results)/4]
+
         #Second step lookup
-        #new_moves = []
-        #results = []
-        #for s,b,w,d in moves:
-            #new_world = w.clone()
-            #new_world.set_current_block(b)
-            #new_world.fast_forward()
-            #new_world.set_current_block(w.get_next_block().copy())
+        new_moves = []
+        results = []
+        for s,b,w,d in moves:
+            new_world = w.clone()
+            new_world.set_current_block(b)
+            new_world.fast_forward()
+            new_world.set_current_block(w.get_next_block().copy())
             
-            #t = self.lookup_moves(new_world, new_world.get_current_block(), world)
-            #for s2,b2,w2,d2 in t:
-                #results.append((s2,b,d2))
-            #new_moves.extend(t)
-        #moves = new_moves
+            t = self.lookup_moves(new_world, new_world.get_current_block(), world)
+            for s2,b2,w2,d2 in t:
+                results.append((s2,b,d2))
+            new_moves.extend(t)
+        moves = new_moves
+        
+            
                 
                 
         #Picking a move
