@@ -16,11 +16,11 @@ class AI(Player):
         self.metrics = []
         
         self.metrics.append(BlockedMetric2())
-        self.metrics.append(CompactedMetric())
-        self.metrics.append(FuturePotentialMetric())
-        self.metrics.append(HighestColMetric())
-        self.metrics.append(ColumnDiffMetric())
-        self.metrics.append(DeltaRowsMetric())
+        #self.metrics.append(CompactedMetric())
+        #self.metrics.append(FuturePotentialMetric())
+        #self.metrics.append(HighestColMetric())
+        #self.metrics.append(ColumnDiffMetric())
+        #self.metrics.append(DeltaRowsMetric())
         
     def score(self,world, prev_world, debug = False):
         score = 0.0
@@ -48,7 +48,7 @@ class AI(Player):
                 
     def get_position(self,world):
         #First step lookup
-        moves = self.lookup_moves(world, world.get_current_block())
+        moves = self.lookup_moves(world, world.getCurrentBlock())
         results = []
         for s,b,w,d in moves:
             results.append((s,b,d))
@@ -56,20 +56,20 @@ class AI(Player):
 
         results = sorted(results, key=lambda x: x[0], reverse=True)[:len(results)/4]
 
-        #Second step lookup
-        new_moves = []
-        results = []
-        for s,b,w,d in moves:
-            new_world = w.clone()
-            new_world.set_current_block(b)
-            new_world.fast_forward()
-            new_world.set_current_block(w.get_next_block().copy())
+        ##Second step lookup
+        #new_moves = []
+        #results = []
+        #for s,b,w,d in moves:
+            #new_world = w.clone()
+            #new_world.setCurrentBlock(b)
+            #new_world.fastForward()
+            #new_world.setCurrentBlock(w.getCurrentBlock().copy())
             
-            t = self.lookup_moves(new_world, new_world.get_current_block(), world)
-            for s2,b2,w2,d2 in t:
-                results.append((s2,b,d2))
-            new_moves.extend(t)
-        moves = new_moves
+            #t = self.lookup_moves(new_world, new_world.getCurrentBlock(), world)
+            #for s2,b2,w2,d2 in t:
+                #results.append((s2,b,d2))
+            #new_moves.extend(t)
+        #moves = new_moves
         
             
                 
@@ -100,18 +100,19 @@ class AI(Player):
         score = None
         
         moves = []
-        all_orientations =  world.get_current_block().get_all_orientations()
+        all_orientations =  world.getCurrentBlock().get_all_orientations()
+        print all_orientations
         for cblock in all_orientations:
             for x in xrange(world.width):
                 cworld = world.clone()
-                cworld.set_current_block(cblock.copy())
+                cworld.setCurrentBlock(cblock.copy())
                 cblock.pos[0] = x
                 
-                b = cworld.get_current_block().copy()
+                b = cworld.getCurrentBlock().copy()
                 
-                if cworld.detect_collision():
+                if cworld.detectCollision(b):
                     continue
-                cworld.fast_forward()    
+                cworld.fastForward()    
                 
                 if prev_world is None:
                     s, d = self.score(cworld, world)

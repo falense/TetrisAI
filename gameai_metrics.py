@@ -17,10 +17,9 @@ class BlockedMetric2(Metric):
     def get_score(self, world, prev_world):
 		blocked_squares = 0.0
 		for x in xrange(world.width):
-			column = world[x]
 			#print world.get_col_height(x),
 			for y in xrange(world.height):
-				if column[y] is None and world.get_col_height(x) > world.height-y: 
+				if world._getCell(x,y) == False and world.getColHeight(x) > world.height-y: 
 					#print "Found blocked"
 					blocked_squares += 1.0
 		#print
